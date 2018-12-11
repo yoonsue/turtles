@@ -118,16 +118,42 @@ func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int) i
 
 	sum := 0
 
+	roundNum := roundCheck(currentHexNum)
+
+	previousRoundEndHexNum := 1
+	currentRoundEndHexNum := 1
+
+	if roundNum != 1 {
+		previousRoundEndHexNum += (roundNum * (6 * (roundNum - 1 - 1)) / 2)
+		currentRoundEndHexNum += (roundNum * (6 * (roundNum - 1)) / 2)
+	}
+
+	sumInt := 0
+	i := 0
+	for i < currentHexNum {
+		sumInt += randList[i]
+	}
+
+	previousRoundPointer := -1
 	if currentHexNum == 1 { // Round 1.
 		tmpIntList = randList[:6]
 	} else { // From Round 2.
-		if incrementOfInt == 4 { // Round start-point
-			tmpIntList = randList
-		} else if incrementOfInt == 3 { // 6 vertices
 
-		} else if incrementOfInt == 2 { // rest of edges
+		incrementVertex := randList[currentHexNum]
 
-		} else if incrementOfInt == 1 { // Round end-point (Start at Round 3)
+		if incrementVertex == 4 { // Round start-point
+			previousRoundPointer += roundNum
+			tmpIntList = randList[previousRoundEndHexNum+1 : previousRoundEndHexNum+previousRoundPointer]
+			tmpIntList = randList[sumInt : sumInt+4]
+		} else if incrementVertex == 3 { // 6 vertices
+			tmpIntList = randList[sumInt : sumInt+3]
+
+		} else if incrementVertex == 2 { // rest of edges
+			tmpIntList = randList[sumInt : sumInt+2]
+
+		} else if incrementVertex == 1 { // Round end-point (Start at Round 3)
+			tmpIntList = randList[previousRoundEndHexNum+1 : previousRoundEndHexNum+previousRoundPointer]
+			tmpIntList = randList[sumInt : sumInt+1] // last vertex for currnet round
 
 		}
 	}
