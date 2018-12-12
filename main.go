@@ -112,7 +112,9 @@ func newVerticesOfHexGenerator(hexN int) []int {
 	return listOfNumOfVerticesToAdd
 }
 
-func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int) int {
+// pointerOfPreviousRound := 0
+
+func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int, pointerOfPreviousRound *int) int {
 
 	tmpIntList := make([]int, 0, 6)
 
@@ -122,9 +124,11 @@ func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int) i
 
 	previousRoundEndHexNum := 1
 	currentRoundEndHexNum := 1
+	previousRoundStartInt := 0
 
 	if roundNum != 1 {
 		previousRoundEndHexNum += (roundNum * (6 * (roundNum - 1 - 1)) / 2)
+		previousRoundStartInt = (roundNum * (6 * (roundNum - 2 - 1)) / 2) + 1 // previous Round Start Vertex
 		currentRoundEndHexNum += (roundNum * (6 * (roundNum - 1)) / 2)
 	}
 
@@ -134,26 +138,31 @@ func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int) i
 		sumInt += randList[i]
 	}
 
-	previousRoundPointer := -1
 	if currentHexNum == 1 { // Round 1.
+		previousRoundStartInt = 0
 		tmpIntList = randList[:6]
 	} else { // From Round 2.
 
 		incrementVertex := randList[currentHexNum]
 
 		if incrementVertex == 4 { // Round start-point
-			previousRoundPointer += roundNum
-			tmpIntList = randList[previousRoundEndHexNum+1 : previousRoundEndHexNum+previousRoundPointer]
+			*pointerOfPreviousRound += 1
+			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+2]
+			*pointerOfPreviousRound += 1
 			tmpIntList = randList[sumInt : sumInt+4]
 		} else if incrementVertex == 3 { // 6 vertices
+			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+2]
 			tmpIntList = randList[sumInt : sumInt+3]
-
+			*pointerOfPreviousRound += 1
 		} else if incrementVertex == 2 { // rest of edges
-			tmpIntList = randList[sumInt : sumInt+2]
-
+			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+3]
+			tmpIntList = randList[sumInt-1 : sumInt+2]
+			*pointerOfPreviousRound += 2
 		} else if incrementVertex == 1 { // Round end-point (Start at Round 3)
-			tmpIntList = randList[previousRoundEndHexNum+1 : previousRoundEndHexNum+previousRoundPointer]
-			tmpIntList = randList[sumInt : sumInt+1] // last vertex for currnet round
+			tmpIntList = randList[previousRoundStartInt : previousRoundStartInt+2]
+			tmpIntList = randList[sumInt-1 : sumInt+1] // last vertex for currnet round
+			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound]
+			tmpIntList = randList[]
 
 		}
 	}
