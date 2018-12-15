@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 func main() {
@@ -14,6 +15,8 @@ func main() {
 	fmt.Printf("How many hexagons you want? ")
 	fmt.Scanf("%d", &n)
 
+	startTime := time.Now()
+
 	listOfNumOfVerticesToAdd := newVerticesOfHexGenerator(n)
 
 	i := 0
@@ -23,10 +26,18 @@ func main() {
 	}
 	myrand := random(endInt)
 
-	randomRoundCheck := roundCheck(n)
+	randomRoundCheck, HexCheck := roundCheck(n)
 
 	fmt.Println("size of List: ", len(listOfNumOfVerticesToAdd), "listOfNumOfVerticesToAdd: ", listOfNumOfVerticesToAdd)
-	fmt.Println("round #", randomRoundCheck, "size: ", n, "( ~ ", endInt, ")\nlist: ", myrand)
+	fmt.Println("round #", randomRoundCheck, "Hex #", HexCheck, "size: ", n, "( ~ ", endInt, ")\nlist: ", myrand)
+
+	sumOfVerticesInHex := sumOfVerticesInHex(listOfNumOfVerticesToAdd, myrand, n)
+
+	fmt.Println("sum of vertices in hexagonal: ", sumOfVerticesInHex)
+	endTime := time.Now()
+
+	totalTime := endTime.Sub(startTime)
+	fmt.Println("COMPUTATION TIME: ", totalTime)
 }
 
 func random(size int) []int {
@@ -43,21 +54,27 @@ func random(size int) []int {
 	return randList
 }
 
-func roundCheck(currentHexNum int) int {
+func roundCheck(currentHexNum int) (int, int) {
 	an := 1
 	roundNum := 1
 
+	lastHexOfPrevRound := 0
+	// lastHexOfCurrentRound := an
 	for {
 		lastHexOfCurrentRound := an + (roundNum * (6 * (roundNum - 1)) / 2)
 		// fmt.Println("last Hex of Round #", roundNum, " is Hex #", lastHexOfCurrentRound)
 
 		if currentHexNum > lastHexOfCurrentRound {
+			lastHexOfPrevRound = lastHexOfCurrentRound
 			roundNum++
 		} else {
 			break
 		}
 	}
-	return roundNum
+
+	hexNumOfRound := currentHexNum - lastHexOfPrevRound
+
+	return roundNum, hexNumOfRound
 }
 
 func newVerticesOfHexGenerator(hexN int) []int {
@@ -90,7 +107,7 @@ func newVerticesOfHexGenerator(hexN int) []int {
 			for tmpBetweenTwoVertexOfHex > 0 {
 				numOfVerticesToAdd = 2
 				listOfNumOfVerticesToAdd = append(listOfNumOfVerticesToAdd, numOfVerticesToAdd)
-				fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
+				// fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
 				tmpBetweenTwoVertexOfHex--
 				currentHexNum++
 				if currentHexNum == lastHexOfCurrentRound {
@@ -102,9 +119,9 @@ func newVerticesOfHexGenerator(hexN int) []int {
 			} else {
 				numOfVerticesToAdd = 1
 			}
-			fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
+			// fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
 		}
-		fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
+		// fmt.Println("Round #", roundNum, " Hex#", currentHexNum, "lastHex#", lastHexOfCurrentRound, "numOfVerticesToAdd: ", numOfVerticesToAdd)
 		listOfNumOfVerticesToAdd = append(listOfNumOfVerticesToAdd, numOfVerticesToAdd)
 
 		currentHexNum++
@@ -112,60 +129,205 @@ func newVerticesOfHexGenerator(hexN int) []int {
 	return listOfNumOfVerticesToAdd
 }
 
-// pointerOfPreviousRound := 0
+func getStartVertexForHex(listOfNumOfVerticesToAdd []int, hexNum int) int {
+	i := 0
+	startVertexForHex := 0
+	for i < hexNum-1 {
+		startVertexForHex += listOfNumOfVerticesToAdd[i]
+		i++
+	}
+	return startVertexForHex
+}
 
-func sumOfVerticesInHex(randList []int, currentHexNum int, incrementOfInt int, pointerOfPreviousRound *int) int {
+func sumOfVerticesInHex(listOfNumOfVerticesToAdd []int, randList []int, currentHexNum int) int {
 
-	tmpIntList := make([]int, 0, 6)
+	roundNum, hexNum := roundCheck(currentHexNum)
 
-	sum := 0
-
-	roundNum := roundCheck(currentHexNum)
-
-	previousRoundEndHexNum := 1
-	currentRoundEndHexNum := 1
-	previousRoundStartInt := 0
-
+	edgeNum := 0
+	vertexOfEdge := 0
 	if roundNum != 1 {
-		previousRoundEndHexNum += (roundNum * (6 * (roundNum - 1 - 1)) / 2)
-		previousRoundStartInt = (roundNum * (6 * (roundNum - 2 - 1)) / 2) + 1 // previous Round Start Vertex
+		edgeNum = (hexNum - 1) / (roundNum - 1)
+		vertexOfEdge = (hexNum - 1) % (roundNum - 1)
+	}
+
+	currentVertexForHex := getStartVertexForHex(listOfNumOfVerticesToAdd, currentHexNum)
+
+	previousRoundVertexNum := 1
+	if hexNum != 1 {
+		currentVertexForHex--
+	}
+
+	previousRoundVertexNum += currentVertexForHex - edgeNum*2 - 6*(1+2*(roundNum-2))
+	if vertexOfEdge != 0 {
+		previousRoundVertexNum -= 2
+	}
+
+	twoRoundBeforeEndHexNum := 0
+	previousRoundEndHexNum := 0
+	currentRoundEndHexNum := 1
+
+	if roundNum > 2 {
 		currentRoundEndHexNum += (roundNum * (6 * (roundNum - 1)) / 2)
+		previousRoundEndHexNum = currentRoundEndHexNum - (roundNum-1)*6
+		twoRoundBeforeEndHexNum = previousRoundEndHexNum - (roundNum-2)*6
 	}
 
 	sumInt := 0
 	i := 0
+	previousRoundStartVertex := 0
 	for i < currentHexNum {
-		sumInt += randList[i]
+		sumInt += listOfNumOfVerticesToAdd[i]
+		if i < twoRoundBeforeEndHexNum {
+			previousRoundStartVertex += listOfNumOfVerticesToAdd[i]
+		}
+		i++
 	}
+
+	j := 0
+	currentRoundStartVertex := 0
+	for j < roundNum-1 {
+		currentRoundStartVertex += 6 * (1 + 2*j)
+		j++
+	}
+	previousRoundEndVertex := currentRoundStartVertex - 1
+	fmt.Println("previousRoundStartVertex: ", previousRoundStartVertex, "currentRoundStartVertex: ", currentRoundStartVertex, "previousRoundEndVertex: ", previousRoundEndVertex)
+	sumInt -= listOfNumOfVerticesToAdd[i-1]
+
+	tmpIntList := make([]int, 6)
+	sumVertexList := make([]int, 6)
+
+	sum := 0
+	incrementVertex := listOfNumOfVerticesToAdd[currentHexNum-1]
 
 	if currentHexNum == 1 { // Round 1.
-		previousRoundStartInt = 0
+		fmt.Println("ROUND 1")
 		tmpIntList = randList[:6]
-	} else { // From Round 2.
 
-		incrementVertex := randList[currentHexNum]
+		sumVertexList[0] = currentVertexForHex
+		sumVertexList[1] = currentVertexForHex + 1
+		sumVertexList[2] = currentVertexForHex + 2
+		sumVertexList[3] = currentVertexForHex + 3
+		sumVertexList[4] = currentVertexForHex + 4
+		sumVertexList[5] = currentVertexForHex + 5
+	} else if roundNum == 2 {
+		fmt.Println("ROUND 2, incrementVertex: ", incrementVertex)
+		if incrementVertex == 4 { // Round start-point
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+			tmpIntList[3] = randList[currentVertexForHex+3]
+
+			tmpIntList[4] = randList[previousRoundVertexNum]
+			tmpIntList[5] = randList[previousRoundVertexNum+1]
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = currentVertexForHex + 3
+			sumVertexList[4] = previousRoundVertexNum
+			sumVertexList[5] = previousRoundVertexNum + 1
+
+		} else if incrementVertex == 3 { // 6 vertices
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+			tmpIntList[3] = randList[currentVertexForHex+3]
+
+			tmpIntList[4] = randList[previousRoundVertexNum]
+			tmpIntList[5] = randList[previousRoundVertexNum+1]
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = currentVertexForHex + 3
+			sumVertexList[4] = previousRoundVertexNum
+			sumVertexList[5] = previousRoundVertexNum + 1
+		} else if incrementVertex == 2 { // Round2 end-point
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+
+			tmpIntList[3] = randList[previousRoundStartVertex]
+			tmpIntList[4] = randList[previousRoundStartVertex+1]
+			tmpIntList[5] = randList[currentRoundStartVertex]
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = previousRoundVertexNum
+			sumVertexList[4] = previousRoundVertexNum + 1
+			sumVertexList[5] = currentRoundStartVertex
+		}
+
+	} else { // From Round 3.
 
 		if incrementVertex == 4 { // Round start-point
-			*pointerOfPreviousRound += 1
-			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+2]
-			*pointerOfPreviousRound += 1
-			tmpIntList = randList[sumInt : sumInt+4]
-		} else if incrementVertex == 3 { // 6 vertices
-			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+2]
-			tmpIntList = randList[sumInt : sumInt+3]
-			*pointerOfPreviousRound += 1
-		} else if incrementVertex == 2 { // rest of edges
-			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound : previousRoundStartInt+*pointerOfPreviousRound+3]
-			tmpIntList = randList[sumInt-1 : sumInt+2]
-			*pointerOfPreviousRound += 2
-		} else if incrementVertex == 1 { // Round end-point (Start at Round 3)
-			tmpIntList = randList[previousRoundStartInt : previousRoundStartInt+2]
-			tmpIntList = randList[sumInt-1 : sumInt+1] // last vertex for currnet round
-			tmpIntList = randList[previousRoundStartInt+*pointerOfPreviousRound]
-			tmpIntList = randList[]
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+			tmpIntList[3] = randList[currentVertexForHex+3]
 
+			tmpIntList[4] = previousRoundVertexNum
+			tmpIntList[5] = previousRoundVertexNum + 1
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = currentVertexForHex + 3
+			sumVertexList[4] = previousRoundVertexNum
+			sumVertexList[5] = previousRoundVertexNum + 1
+
+		} else if incrementVertex == 3 { // 6 vertices
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+			tmpIntList[3] = randList[currentVertexForHex+3]
+
+			tmpIntList[4] = previousRoundVertexNum
+			tmpIntList[5] = previousRoundVertexNum + 1
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = currentVertexForHex + 3
+			sumVertexList[4] = previousRoundVertexNum
+			sumVertexList[5] = previousRoundVertexNum + 1
+
+		} else if incrementVertex == 2 { // rest of edges
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+			tmpIntList[2] = randList[currentVertexForHex+2]
+
+			tmpIntList[3] = randList[previousRoundVertexNum]
+			tmpIntList[4] = randList[previousRoundVertexNum+1]
+			tmpIntList[5] = randList[previousRoundVertexNum+2]
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = currentVertexForHex + 2
+			sumVertexList[3] = previousRoundVertexNum
+			sumVertexList[4] = previousRoundVertexNum + 1
+			sumVertexList[5] = previousRoundVertexNum + 2
+
+		} else if incrementVertex == 1 { // Round end-point (Start at Round 3)
+			tmpIntList[0] = randList[currentVertexForHex]
+			tmpIntList[1] = randList[currentVertexForHex+1]
+
+			tmpIntList[2] = randList[previousRoundStartVertex]
+			tmpIntList[3] = randList[previousRoundStartVertex+1]
+			tmpIntList[4] = randList[previousRoundEndVertex]
+			tmpIntList[5] = randList[currentRoundStartVertex]
+
+			sumVertexList[0] = currentVertexForHex
+			sumVertexList[1] = currentVertexForHex + 1
+			sumVertexList[2] = previousRoundStartVertex
+			sumVertexList[3] = previousRoundStartVertex + 1
+			sumVertexList[4] = previousRoundEndVertex
+			sumVertexList[5] = currentRoundStartVertex
 		}
 	}
+
+	fmt.Println("sumVertexList: ", sumVertexList)
 
 	for i, _ := range tmpIntList {
 		sum += tmpIntList[i]
